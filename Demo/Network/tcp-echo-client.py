@@ -9,7 +9,5 @@ MESSAGE = sys.argv[3]
 
 with socket.create_connection((HOST, PORT)) as s:
     s.sendall(MESSAGE.encode())
-    data = s.recv(1024)
-
-    if data:
+    if data := s.recv(1024):
         print('Received', data.decode())

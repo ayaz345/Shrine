@@ -67,29 +67,16 @@ def test():
 def do_command(*argv):
     cmd = argv[0]
 
-    if cmd == 'put':
-        filename = argv[1]
-        local_filename = argv[2] if len(argv) > 2 else filename
+    if cmd == 'command':
+        command = argv[1]
 
-        with open(local_filename, 'rb') as f:
-            data = f.read()
-            size = len(data)
-
-            test()
-            send('P' + filename)
-            send('S' + str(size))
-
-            while len(data):
-                sock.send(data[0:CHUNK_SIZE])
-                data = data[CHUNK_SIZE:]
-                time.sleep(float(CHUNK_SIZE) * 8 / BAUD)
-
-        print('Read', size, 'bytes from', local_filename)
+        test()
+        send(f"'{command}")
     elif cmd == 'list':
         filename = argv[1]
         local_filename = argv[2] if len(argv) > 2 else filename
 
-        send('L' + filename)
+        send(f'L{filename}')
 
         next_ = read_line()
         assert next_[0] == 'S'
@@ -104,29 +91,36 @@ def do_command(*argv):
                 size_remaining -= len(data)
 
         print('Written', size, 'bytes to', local_filename)
-    elif cmd == 'command':
-        command = argv[1]
+    elif cmd == 'put':
+        filename = argv[1]
+        local_filename = argv[2] if len(argv) > 2 else filename
 
-        test()
-        send("'" + command)
-    #elif cmd == 'test':
-    #    test()
+        with open(local_filename, 'rb') as f:
+            data = f.read()
+            size = len(data)
+
+            test()
+            send(f'P{filename}')
+            send(f'S{size}')
+
+            while len(data):
+                sock.send(data[:CHUNK_SIZE])
+                data = data[CHUNK_SIZE:]
+                time.sleep(float(CHUNK_SIZE) * 8 / BAUD)
+
+        print('Read', size, 'bytes from', local_filename)
     elif cmd == 'wait':
         secs = float(argv[1])
         time.sleep(secs)
     else:
-        raise Exception('Command error: ' + argv[0])
+        raise Exception('Command error: ' + cmd)
 
 if len(sys.argv) > 1:
     do_command(*sys.argv[1:])
 else:
     try:
         while True:
-            if sys.version_info[0] < 3:
-                entry = raw_input()
-            else:
-                entry = input()
-
+            entry = raw_input() if sys.version_info[0] < 3 else input()
             if len(entry) and entry[0] != '#':
                 items = entry.split('\t')
                 do_command(*items)
